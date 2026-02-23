@@ -3,8 +3,8 @@ dynamikasolucoesweb/laravel-responsive-menu
 ![php version](https://img.shields.io/packagist/php-v/dynamikasolucoesweb/laravel-responsive-menu)
 ![pkg version](https://img.shields.io/packagist/v/dynamikasolucoesweb/laravel-responsive-menu)
 ![license](https://img.shields.io/packagist/l/dynamikasolucoesweb/laravel-responsive-menu)
-![quality](https://img.shields.io/scrutinizer/quality/g/dynamikasolucoesweb/laravel-responsive-menu)
-![build](https://img.shields.io/scrutinizer/build/g/dynamikasolucoesweb/laravel-responsive-menu)
+![quality](https://img.shields.io/scrutinizer/quality/g/dynamikaweb/laravel-responsive-menu)
+![build](https://img.shields.io/scrutinizer/build/g/dynamikaweb/laravel-responsive-menu)
 
 O Laravel Responsive Menu é um componente Blade que transforma arrays complexos em menus responsivos e auto-ajustáveis, utilizando o motor de animação DLMenu.
 
