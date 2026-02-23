@@ -33,42 +33,74 @@ class ResponsiveMenu extends Component
 
     public function normalizeItems(): array
     {
-        if (empty($this->items)) return [];
+        if (empty($this->items)) {
+            return [];
+        }
 
-        $newRoots = [];
-        foreach ($this->items as $oldRoot) {
-            $label = data_get($oldRoot, 'encode', true) ? e($oldRoot['label']) : $oldRoot['label'];
-            $newSubs = [];
+        return array_map(fn(array $root) => $this->transformRootItem($root), $this->items);
+    }
 
-            if (!empty($oldRoot['content'])) {
-                $newSubs[] = [
-                    'label' => $label,
-                    'url' => 'javascript:;',
-                    'content' => $oldRoot['content'],
-                    'items' => []
-                ];
-            }
+    /**
+     * Transforma o item de primeiro nível (Root).
+     */
+    protected function transformRootItem(array $root): array
+    {
+        $label = data_get($root, 'encode', true) ? e($root['label']) : $root['label'];
+        
+        $items = $this->transformSubItems(
+            data_get($root, 'items', []), 
+            $label, 
+            data_get($root, 'content')
+        );
 
-            foreach (data_get($oldRoot, 'items', []) as $oldSub) {
-                $newSubs[] = [
-                    'label' => data_get($oldSub, 'label'),
-                    'url' => data_get($oldSub, 'url', 'javascript:;'),
-                    'target' => data_get($oldSub, 'target', '_self'),
-                    'items' => collect(data_get($oldSub, 'items', []))->map(fn($item) => [
-                        'label' => data_get($item, 'label'),
-                        'url' => data_get($item, 'url', 'javascript:;'),
-                        'target' => data_get($item, 'target', '_self'),
-                    ])->toArray()
-                ];
-            }
+        return [
+            'label'  => $label,
+            'url'    => data_get($root, 'url', 'javascript:;'),
+            'target' => data_get($root, 'target', '_self'),
+            'items'  => $items
+        ];
+    }
 
-            $newRoots[] = [
-                'label' => $label,
-                'url' => data_get($oldRoot, 'url', 'javascript:;'),
-                'target' => data_get($oldRoot, 'target', '_self'),
-                'items' => $newSubs
+    /**
+     * Processa a lista de sub-itens e o conteúdo HTML.
+     */
+    protected function transformSubItems(array $subs, string $label, ?string $content = null): array
+    {
+        $newSubs = [];
+
+        // Se houver conteúdo, ele entra como o primeiro item do sub-menu
+        if (!empty($content)) {
+            $newSubs[] = [
+                'label'   => $label,
+                'url'     => 'javascript:;',
+                'content' => $content,
+                'items'   => []
             ];
         }
-        return $newRoots;
+
+        foreach ($subs as $oldSub) {
+            $newSubs[] = $this->formatSubMenu($oldSub);
+        }
+
+        return $newSubs;
+    }
+
+    /**
+     * Formata a estrutura de um sub-menu e seus filhos de terceiro nível.
+     */
+    protected function formatSubMenu(array $sub): array
+    {
+        $children = data_get($sub, 'items', []);
+
+        return [
+            'label'  => data_get($sub, 'label'),
+            'url'    => data_get($sub, 'url', 'javascript:;'),
+            'target' => data_get($sub, 'target', '_self'),
+            'items'  => array_map(fn(array $item) => [
+                'label'  => data_get($item, 'label'),
+                'url'    => data_get($item, 'url', 'javascript:;'),
+                'target' => data_get($item, 'target', '_self'),
+            ], $children)
+        ];
     }
 }
