@@ -55,7 +55,7 @@ Para que os estilos e scripts sejam injetados automaticamente, seu arquivo de la
 </body>
 ```
 
-Usage
+Uso
 ------------
 Certifique-se de que seu layout principal possua a diretiva @responsiveMenuAssets. Basta chamar o componente e passar o seu array de itens. O componente gerencia o cache e a normalização dos dados automaticamente.
 
