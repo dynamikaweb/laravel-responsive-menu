@@ -19,7 +19,7 @@ class MenuServiceProvider extends ServiceProvider
             __DIR__.'/../resources/assets' => public_path('vendor/dynamikasolucoesweb/responsive-menu'),
         ], 'responsive-menu-assets');
 
-        \Illuminate\Support\Facades\Blade::directive('responsiveMenuAssets', function () {
+        Blade::directive('responsiveMenuAssets', function () {
             return "<?php
                 \$cssFiles = ['style.css'];
                 \$jsFiles  = ['modernizr.custom.js', 'dlmenu.js', 'script.js'];
@@ -31,14 +31,14 @@ class MenuServiceProvider extends ServiceProvider
                     \$url = \$isPublished 
                         ? asset(\$publicPath . '/css/' . \$file) 
                         : route('responsive-menu.assets', ['type' => 'css', 'file' => \$file]);
-                    echo '<link rel=\"stylesheet\" href=\"' . \$url . '\">';
+                    echo ' <link rel=\"stylesheet\" href=\"' . \$url . '\">' . PHP_EOL;
                 }
     
                 foreach (\$jsFiles as \$file) {
                     \$url = \$isPublished 
                         ? asset(\$publicPath . '/js/' . \$file) 
                         : route('responsive-menu.assets', ['type' => 'js', 'file' => \$file]);
-                    echo '<script src=\"' . \$url . '\"></script>';
+                    echo ' <script src=\"' . \$url . '\"></script>' . PHP_EOL;
                 }
             ?>";
         });
