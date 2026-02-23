@@ -1,0 +1,30 @@
+{
+    "name": "dynamikasolucoesweb/laravel-responsive-menu",
+    "description": "A responsive multi-level menu that shows its submenus in their own context, allowing for a space-saving presentation and usage.",
+    "type": "library",
+    "keywords": ["dynamika", "laravel", "menu", "responsive"],
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Giordani da Silveira dos Santos",
+            "email": "giordani@dynamika.com.br"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/view": "^10.0|^11.0|^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "DynamikaSolucoesWeb\\Responsive\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "DynamikaSolucoesWeb\\Responsive\\MenuServiceProvider"
+            ]
+        }
+    }
+}

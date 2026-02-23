@@ -1,0 +1,19 @@
+build:
+    environment:
+        php:
+            version: 8.2.0
+    nodes:
+        analysis:
+            project_setup:
+                override: true
+            tests:
+                override:
+                    - php-scrutinizer-run
+
+filter:
+    excluded_paths: [vendor/*, tests/*, resources/*]
+
+checks:
+    php:
+        code_rating: true
+        duplication: true
