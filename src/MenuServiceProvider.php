@@ -22,7 +22,7 @@ class MenuServiceProvider extends ServiceProvider
         Blade::directive('responsiveMenuAssets', function () {
             return "<?php
                 \$cssFiles = ['style.css'];
-                \$jsFiles  = ['modernizr.custom.js', 'dlmenu.js', 'script.js'];
+                \$jsFiles  = ['dlmenu.js', 'script.js'];
                 
                 \$publicPath = 'vendor/dynamikasolucoesweb/responsive-menu';
                 \$isPublished = file_exists(public_path(\$publicPath));

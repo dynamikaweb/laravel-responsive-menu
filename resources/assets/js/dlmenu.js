@@ -1,286 +1,217 @@
 /**
- * jquery.dlmenu.js v1.0.1
- * http://www.codrops.com
- *
- * Licensed under the MIT license.
- * http://www.opensource.org/licenses/mit-license.php
- *
- * Copyright 2013, Codrops
- * http://www.codrops.com
+ * dlmenu.js — versão sem jQuery do jquery.dlmenu.js v1.0.1 (Codrops, MIT).
+ * Uso: new DLMenu(document.getElementById('dl-menu'), { backLabel: 'Voltar' })
  */
-;( function( $, window, undefined ) {
-
+(function (window, document) {
     'use strict';
 
-    // global
-    var Modernizr = window.Modernizr, $body = $( 'body' );
-
-    $.DLMenu = function( options, element ) {
-        this.$el = $( element );
-        this._init( options );
-    };
-
-    // the options
-    $.DLMenu.defaults = {
-        // classes for the animation effects
-        animationClasses : { classin : 'dl-animate-in-1', classout : 'dl-animate-out-1' },
-        // callback: click a link that has a sub menu
-        // el is the link element (li); name is the level name
-        onLevelClick : function( el, name ) { return false; },
-        // callback: click a link that does not have a sub menu
-        // el is the link element (li); ev is the event obj
-        onLinkClick : function( el, ev ) { return false; },
+    const PADRAO = {
+        animationClasses: { classin: 'dl-animate-in-1', classout: 'dl-animate-out-1' },
+        onLevelClick: function () {},
+        onLinkClick: function () {},
         backLabel: 'Voltar',
-        // Change to "true" to use the active item as back link label.
         useActiveItemAsBackLabel: false,
-        // Change to "true" to add a navigable link to the active item to its child
-        // menu.
         useActiveItemAsLink: false,
-        // On close reset the menu to root
-        resetOnClose: true
+        resetOnClose: true,
     };
 
-    $.DLMenu.prototype = {
-        _init : function( options ) {
+    function filhos(el, seletor) {
+        return Array.from(el.children).filter((filho) => filho.matches(seletor));
+    }
 
-            // options
-            this.options = $.extend( true, {}, $.DLMenu.defaults, options );
-            // cache some elements and initialize some variables
-            this._config();
+    // Executa fn no fim da animação/transição do elemento (ou após o tempo limite, se ela não ocorrer).
+    function aoTerminar(el, evento, fn, limite) {
+        let feito = false;
+        const finalizar = () => {
+            if (feito) return;
+            feito = true;
+            el.removeEventListener(evento, finalizar);
+            clearTimeout(temporizador);
+            fn();
+        };
+        el.addEventListener(evento, finalizar);
+        const temporizador = setTimeout(finalizar, limite || 800);
+    }
 
-            var animEndEventNames = {
-                    'WebkitAnimation' : 'webkitAnimationEnd',
-                    'OAnimation' : 'oAnimationEnd',
-                    'msAnimation' : 'MSAnimationEnd',
-                    'animation' : 'animationend'
-                },
-                transEndEventNames = {
-                    'WebkitTransition' : 'webkitTransitionEnd',
-                    'MozTransition' : 'transitionend',
-                    'OTransition' : 'oTransitionEnd',
-                    'msTransition' : 'MSTransitionEnd',
-                    'transition' : 'transitionend'
-                };
-            // animation end event name
-            this.animEndEventName = animEndEventNames[ Modernizr.prefixed( 'animation' ) ] + '.dlmenu';
-            // transition end event name
-            this.transEndEventName = transEndEventNames[ Modernizr.prefixed( 'transition' ) ] + '.dlmenu';
-            // support for css animations and css transitions
-            this.supportAnimations = Modernizr.cssanimations;
-            this.supportTransitions = Modernizr.csstransitions;
+    class DLMenu {
+        constructor(el, opcoes = {}) {
+            this.el = el;
+            this.opcoes = {
+                ...PADRAO,
+                ...opcoes,
+                animationClasses: { ...PADRAO.animationClasses, ...(opcoes.animationClasses || {}) },
+            };
+            this.aberto = false;
+            this.trigger = filhos(el, '.dl-trigger')[0];
+            this.menu = filhos(el, 'ul.dl-menu')[0];
+            if (!this.trigger || !this.menu) return;
 
-            this._initEvents();
+            this.itens = Array.from(this.menu.querySelectorAll('li:not(.dl-back)'));
+            el.querySelectorAll('ul.dl-submenu').forEach((ul) => {
+                const voltar = document.createElement('li');
+                voltar.className = 'dl-back';
+                voltar.innerHTML = '<a href="#"></a>';
+                voltar.firstChild.textContent = this.opcoes.backLabel;
+                ul.appendChild(voltar);
+            });
+            this.voltar = Array.from(this.menu.querySelectorAll('li.dl-back'));
 
-        },
-        _config : function() {
-            this.open = false;
-            this.$trigger = this.$el.children( '.dl-trigger' );
-            this.$menu = this.$el.children( 'ul.dl-menu' );
-            this.$menuitems = this.$menu.find( 'li:not(.dl-back)' );
-            this.$el.find( 'ul.dl-submenu' ).append( '<li class="dl-back"><a href="#">' + this.options.backLabel + '</a></li>' );
-            this.$back = this.$menu.find( 'li.dl-back' );
-
-            // Set the label text for the back link.
-            if (this.options.useActiveItemAsBackLabel) {
-                this.$back.each(function() {
-                    var $this = $(this),
-                        parentLabel = $this.parents('li:first').find('a:first').text();
-
-                    $this.find('a').html(parentLabel);
-                });
-            }
-            // If the active item should also be a clickable link, create one and put
-            // it at the top of our menu.
-            if (this.options.useActiveItemAsLink) {
-                this.$el.find( 'ul.dl-submenu' ).prepend(function() {
-                    var parentli = $(this).parents('li:not(.dl-back):first').find('a:first');
-                    return '<li class="dl-parent"><a href="' + parentli.attr('href') + '">' + parentli.text() + '</a></li>';
+            if (this.opcoes.useActiveItemAsBackLabel) {
+                this.voltar.forEach((li) => {
+                    const pai = li.parentElement.closest('li');
+                    const link = pai && pai.querySelector('a');
+                    if (link) li.querySelector('a').textContent = link.textContent;
                 });
             }
 
-        },
-        _initEvents : function() {
-
-            var self = this;
-
-            this.$trigger.on( 'click.dlmenu', function() {
-                if( self.open ) {
-                    self._closeMenu();
-                }
-                else {
-                    self._openMenu();
-                    // clicking somewhere else makes the menu close
-                    $body.off( 'click' ).children().on( 'click.dlmenu', function() {
-                        self._closeMenu() ;
-                    } );
-
-                }
-                return false;
-            } );
-
-            this.$menuitems.on( 'click.dlmenu', function( event ) {
-
-                event.stopPropagation();
-
-                var $item = $(this),
-                    $submenu = $item.children( 'ul.dl-submenu' );
-
-                // Only go to the next menu level if one exists AND the link isn't the
-                // one we added specifically for navigating to parent item pages.
-                if( ($submenu.length > 0) && !($(event.currentTarget).hasClass('dl-subviewopen'))) {
-
-                    var $flyin = $submenu.clone().css( 'opacity', 0 ).insertAfter( self.$menu ),
-                        onAnimationEndFn = function() {
-                            self.$menu.off( self.animEndEventName ).removeClass( self.options.animationClasses.classout ).addClass( 'dl-subview' );
-                            $item.addClass( 'dl-subviewopen' ).parents( '.dl-subviewopen:first' ).removeClass( 'dl-subviewopen' ).addClass( 'dl-subview' );
-                            $flyin.remove();
-                        };
-
-                    setTimeout( function() {
-                        $flyin.addClass( self.options.animationClasses.classin );
-                        self.$menu.addClass( self.options.animationClasses.classout );
-                        if( self.supportAnimations ) {
-                            self.$menu.on( self.animEndEventName, onAnimationEndFn );
-                        }
-                        else {
-                            onAnimationEndFn.call();
-                        }
-
-                        self.options.onLevelClick( $item, $item.children( 'a:first' ).text() );
-                    } );
-
-                    return false;
-
-                }
-                else {
-                    self.options.onLinkClick( $item, event );
-                }
-
-            } );
-
-            this.$back.on( 'click.dlmenu', function( event ) {
-
-                var $this = $( this ),
-                    $submenu = $this.parents( 'ul.dl-submenu:first' ),
-                    $item = $submenu.parent(),
-
-                    $flyin = $submenu.clone().insertAfter( self.$menu );
-
-                var onAnimationEndFn = function() {
-                    self.$menu.off( self.animEndEventName ).removeClass( self.options.animationClasses.classin );
-                    $flyin.remove();
-                };
-
-                setTimeout( function() {
-                    $flyin.addClass( self.options.animationClasses.classout );
-                    self.$menu.addClass( self.options.animationClasses.classin );
-                    if( self.supportAnimations ) {
-                        self.$menu.on( self.animEndEventName, onAnimationEndFn );
-                    }
-                    else {
-                        onAnimationEndFn.call();
-                    }
-
-                    $item.removeClass( 'dl-subviewopen' );
-
-                    var $subview = $this.parents( '.dl-subview:first' );
-                    if( $subview.is( 'li' ) ) {
-                        $subview.addClass( 'dl-subviewopen' );
-                    }
-                    $subview.removeClass( 'dl-subview' );
-                } );
-
-                return false;
-
-            } );
-
-        },
-        closeMenu : function() {
-            if( this.open ) {
-                this._closeMenu();
-            }
-        },
-        _closeMenu : function() {
-            var self = this,
-                onTransitionEndFn = function() {
-                    self.$menu.off( self.transEndEventName );
-                    if( self.options.resetOnClose ){
-                        self._resetMenu();
-                    }
-                };
-
-            this.$menu.removeClass( 'dl-menuopen' );
-            this.$menu.addClass( 'dl-menu-toggle' );
-            this.$trigger.removeClass( 'dl-active' );
-
-            if( this.supportTransitions ) {
-                this.$menu.on( this.transEndEventName, onTransitionEndFn );
-            }
-            else {
-                onTransitionEndFn.call();
+            if (this.opcoes.useActiveItemAsLink) {
+                el.querySelectorAll('ul.dl-submenu').forEach((ul) => {
+                    const link = ul.parentElement.closest('li:not(.dl-back)')?.querySelector('a');
+                    if (!link) return;
+                    const li = document.createElement('li');
+                    li.className = 'dl-parent';
+                    li.innerHTML = '<a></a>';
+                    li.firstChild.href = link.getAttribute('href') || '#';
+                    li.firstChild.textContent = link.textContent;
+                    ul.insertBefore(li, ul.firstChild);
+                });
             }
 
-            this.open = false;
-        },
-        openMenu : function() {
-            if( !this.open ) {
-                this._openMenu();
-            }
-        },
-        _openMenu : function() {
-            var self = this;
-            // clicking somewhere else makes the menu close
-            $body.off( 'click' ).on( 'click.dlmenu', function() {
-                self._closeMenu() ;
-            } );
-            this.$menu.addClass( 'dl-menuopen dl-menu-toggle' ).on( this.transEndEventName, function() {
-                $( this ).removeClass( 'dl-menu-toggle' );
-            } );
-            this.$trigger.addClass( 'dl-active' );
-            this.open = true;
-        },
-        // resets the menu to its original state (first level of options)
-        _resetMenu : function() {
-            this.$menu.removeClass( 'dl-subview' );
-            this.$menuitems.removeClass( 'dl-subview dl-subviewopen' );
+            this.fecharAoClicarFora = () => this.closeMenu();
+            this.iniciarEventos();
+            el.dlmenu = this;
         }
-    };
 
-    var logError = function( message ) {
-        if ( window.console ) {
-            window.console.error( message );
-        }
-    };
+        iniciarEventos() {
+            this.trigger.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.aberto) {
+                    this._closeMenu();
+                } else {
+                    this._openMenu();
+                }
+            });
 
-    $.fn.dlmenu = function( options ) {
-        if ( typeof options === 'string' ) {
-            var args = Array.prototype.slice.call( arguments, 1 );
-            this.each(function() {
-                var instance = $.data( this, 'dlmenu' );
-                if ( !instance ) {
-                    logError( "cannot call methods on dlmenu prior to initialization; " +
-                        "attempted to call method '" + options + "'" );
-                    return;
-                }
-                if ( !$.isFunction( instance[options] ) || options.charAt(0) === "_" ) {
-                    logError( "no such method '" + options + "' for dlmenu instance" );
-                    return;
-                }
-                instance[ options ].apply( instance, args );
+            this.itens.forEach((item) => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const submenu = filhos(item, 'ul.dl-submenu')[0];
+
+                    if (submenu && !item.classList.contains('dl-subviewopen')) {
+                        e.preventDefault();
+                        this.abrirNivel(item, submenu);
+                    } else {
+                        this.opcoes.onLinkClick(item, e);
+                    }
+                });
+            });
+
+            this.voltar.forEach((li) => {
+                li.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.voltarNivel(li);
+                });
             });
         }
-        else {
-            this.each(function() {
-                var instance = $.data( this, 'dlmenu' );
-                if ( instance ) {
-                    instance._init();
-                }
-                else {
-                    instance = $.data( this, 'dlmenu', new $.DLMenu( options, this ) );
+
+        abrirNivel(item, submenu) {
+            const { classin, classout } = this.opcoes.animationClasses;
+            const flyin = submenu.cloneNode(true);
+            flyin.style.opacity = 0;
+            this.menu.after(flyin);
+
+            setTimeout(() => {
+                flyin.classList.add(classin);
+                this.menu.classList.add(classout);
+                aoTerminar(this.menu, 'animationend', () => {
+                    this.menu.classList.remove(classout);
+                    this.menu.classList.add('dl-subview');
+                    item.classList.add('dl-subviewopen');
+                    const anterior = item.parentElement.closest('.dl-subviewopen');
+                    if (anterior) {
+                        anterior.classList.remove('dl-subviewopen');
+                        anterior.classList.add('dl-subview');
+                    }
+                    flyin.remove();
+                });
+                const link = filhos(item, 'a')[0];
+                this.opcoes.onLevelClick(item, link ? link.textContent : '');
+            });
+        }
+
+        voltarNivel(li) {
+            const { classin, classout } = this.opcoes.animationClasses;
+            const submenu = li.closest('ul.dl-submenu');
+            const item = submenu.parentElement;
+            const flyin = submenu.cloneNode(true);
+            this.menu.after(flyin);
+
+            setTimeout(() => {
+                flyin.classList.add(classout);
+                this.menu.classList.add(classin);
+                aoTerminar(this.menu, 'animationend', () => {
+                    this.menu.classList.remove(classin);
+                    flyin.remove();
+                });
+
+                item.classList.remove('dl-subviewopen');
+                const subview = li.parentElement.closest('.dl-subview');
+                if (subview) {
+                    if (subview.matches('li')) subview.classList.add('dl-subviewopen');
+                    subview.classList.remove('dl-subview');
                 }
             });
         }
-        return this;
-    };
 
-} )( jQuery, window );
+        openMenu() {
+            if (!this.aberto) this._openMenu();
+        }
+
+        closeMenu() {
+            if (this.aberto) this._closeMenu();
+        }
+
+        _openMenu() {
+            document.addEventListener('click', this.fecharAoClicarFora);
+            this.menu.classList.add('dl-menuopen', 'dl-menu-toggle');
+            aoTerminar(this.menu, 'transitionend', () => this.menu.classList.remove('dl-menu-toggle'));
+            this.trigger.classList.add('dl-active');
+            this.aberto = true;
+        }
+
+        _closeMenu() {
+            document.removeEventListener('click', this.fecharAoClicarFora);
+            this.menu.classList.remove('dl-menuopen');
+            this.menu.classList.add('dl-menu-toggle');
+            this.trigger.classList.remove('dl-active');
+            aoTerminar(this.menu, 'transitionend', () => {
+                if (this.opcoes.resetOnClose) this._resetMenu();
+            });
+            this.aberto = false;
+        }
+
+        _resetMenu() {
+            this.menu.classList.remove('dl-subview');
+            this.itens.forEach((item) => item.classList.remove('dl-subview', 'dl-subviewopen'));
+        }
+    }
+
+    window.DLMenu = DLMenu;
+
+    // Compatibilidade com projetos que ainda chamam $('#dl-menu').dlmenu(opcoes) / .dlmenu('closeMenu').
+    if (window.jQuery) {
+        window.jQuery.fn.dlmenu = function (opcoes, ...args) {
+            return this.each(function () {
+                if (typeof opcoes === 'string') {
+                    if (this.dlmenu && typeof this.dlmenu[opcoes] === 'function' && opcoes.charAt(0) !== '_') {
+                        this.dlmenu[opcoes](...args);
+                    }
+                } else if (!this.dlmenu) {
+                    new DLMenu(this, opcoes);
+                }
+            });
+        };
+    }
+})(window, document);

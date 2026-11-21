@@ -123,7 +123,7 @@ Auto-Correction: Redistribui itens excedentes para manter a integridade do layou
 
 Smart Assets: Fallback automático entre rotas PHP e arquivos estáticos na pasta public.
 
-Compatibilidade: Testado com jQuery 3.6.0+ e Modernizr custom.
+Sem dependências: JavaScript puro (dispensa jQuery e Modernizr). Projetos antigos podem continuar chamando $("#dl-menu").dlmenu() se tiverem jQuery.
 
 Smart Caching: Cache de 24h em produção, com invalidação automática em caso de mudanças.
 

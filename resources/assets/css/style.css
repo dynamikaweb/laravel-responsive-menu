@@ -83,8 +83,10 @@
 	text-decoration: none;
 }
 
-.no-touch .dynamika-menu-responsivo-wrapper li a:hover {
-	background: rgba(255,248,213,0.1);
+@media (hover: hover) {
+	.dynamika-menu-responsivo-wrapper li a:hover {
+		background: rgba(255,248,213,0.1);
+	}
 }
 
 .dynamika-menu-responsivo-wrapper li.dl-back > a {
